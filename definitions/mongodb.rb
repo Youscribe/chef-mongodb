@@ -21,8 +21,8 @@
 
 define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :start],
     :bind_ip => nil, :port => 27017 , :logpath => "/var/log/mongodb",
-    :dbpath => "/data", :configfile => "/etc/mongodb.conf", :configserver => [],
-    :replicaset => nil, :enable_rest => false, :notifies => [] do
+    :dbpath => "/data", :configserver => [],
+    :replicaset => nil, :enable_rest => false, :smallfiles => false, :notifies => [] do
     
   include_recipe "mongodb::default"
   
@@ -39,10 +39,13 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
   
   dbpath = params[:dbpath]
   
-  configfile = params[:configfile]
+  configfile = node['mongodb']['configfile']
   configserver_nodes = params[:configserver]
   
   replicaset = params[:replicaset]
+
+  nojournal = node['mongodb']['nojournal']
+
   if type == "shard"
     if replicaset.nil?
       replicaset_name = nil
@@ -74,10 +77,8 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
   if type != "mongos"
     daemon = "/usr/bin/mongod"
     configserver = nil
-    configfile = nil
   else
     daemon = "/usr/bin/mongos"
-    configfile = nil
     dbpath = nil
     configserver = configserver_nodes.collect{|n| "#{n['fqdn']}:#{n['mongodb']['port']}" }.join(",")
   end
@@ -85,6 +86,7 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
   # default file
   template "#{node['mongodb']['defaults_dir']}/#{name}" do
     action :create
+    cookbook node['mongodb']['template_cookbook']
     source "mongodb.default.erb"
     group node['mongodb']['root_group']
     owner "root"
@@ -101,7 +103,9 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
       "replicaset_name" => replicaset_name,
       "configsrv" => false, #type == "configserver", this might change the port
       "shardsrv" => false,  #type == "shard", dito.
-      "enable_rest" => params[:enable_rest]
+      "nojournal" => nojournal,
+      "enable_rest" => params[:enable_rest],
+      "smallfiles" => params[:smallfiles]
     )
     notifies :restart, "service[#{name}]"
   end
@@ -129,6 +133,7 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
   # init script
   template "#{node['mongodb']['init_dir']}/#{name}" do
     action :create
+    cookbook node['mongodb']['template_cookbook']
     source node[:mongodb][:init_script_template]
     group node['mongodb']['root_group']
     owner "root"
@@ -144,10 +149,10 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
     service_notifies.each do |service_notify|
       notifies :run, service_notify
     end
-    if !replicaset_name.nil?
+    if !replicaset_name.nil? && node['mongodb']['auto_configure']['replicaset']
       notifies :create, "ruby_block[config_replicaset]"
     end
-    if type == "mongos"
+    if type == "mongos" && node['mongodb']['auto_configure']['sharding']
       notifies :create, "ruby_block[config_sharding]", :immediately
     end
     if name == "mongodb"
@@ -157,7 +162,7 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
   end
   
   # replicaset
-  if !replicaset_name.nil?
+  if !replicaset_name.nil? && node['mongodb']['auto_configure']['replicaset']
     rs_nodes = search(
       :node,
       "mongodb_cluster_name:#{replicaset['mongodb']['cluster_name']} AND \
@@ -177,7 +182,7 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
   end
   
   # sharding
-  if type == "mongos"
+  if type == "mongos" && node['mongodb']['auto_configure']['sharding']
     # add all shards
     # configure the sharded collections
     

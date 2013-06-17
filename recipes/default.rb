@@ -21,6 +21,7 @@
 
 package node[:mongodb][:package_name] do
   action :install
+  version node[:mongodb][:package_version]
 end
 
 needs_mongo_gem = (node.recipe?("mongodb::replicaset") or node.recipe?("mongodb::mongos"))
@@ -42,5 +43,6 @@ if node.recipe?("mongodb::default") or node.recipe?("mongodb")
     logpath      node['mongodb']['logpath']
     dbpath       node['mongodb']['dbpath']
     enable_rest  node['mongodb']['enable_rest']
+    smallfiles   node['mongodb']['smallfiles']
   end
 end

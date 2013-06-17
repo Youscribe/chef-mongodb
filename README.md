@@ -38,6 +38,7 @@ For examples see the USAGE section below.
 * `mongodb[:shard_name]` - Name of a shard, default is "default"
 * `mongodb[:sharded_collections]` - Define which collections are sharded
 * `mongodb[:replicaset_name]` - Define name of replicatset
+* `mongodb[:package_version]` - Version of the MongoDB package to install, default is nil
 
 # USAGE:
 
@@ -136,7 +137,7 @@ The setup is not much different to the one described above. All you have to do i
 `mongodb::replicaset` recipe to all shard nodes, and make sure that all shard
 nodes which should be in the same replicaset have the same shard name.
 
-For more details, you can find a [tutorial for Sharding + Replication](https://github.com/edelight/chef-cookbooks/wiki/MongoDB%3A-Replication%2BSharding) in the wiki.
+For more details, you can find a [tutorial for Sharding + Replication](https://github.com/edelight/chef-mongodb/wiki/MongoDB%3A-Replication%2BSharding) in the wiki.
 
 # LICENSE and AUTHOR:
 

@@ -65,12 +65,21 @@ when "rhel","fedora"
   default[:mongodb][:group] = "mongod"
   default[:mongodb][:init_script_template] = "redhat-mongodb.init.erb"
 
-else
+when "debian"
   default[:mongodb][:defaults_dir] = "/etc/default"
   default[:mongodb][:root_group] = "root"
   default[:mongodb][:package_name] = "mongodb-10gen"
-  default[:mongodb][:apt_repo] = "debian-sysvinit"
-
+  if node['platform'] == "ubuntu"
+    default[:mongodb][:apt_repo] = "ubuntu-upstart"
+    default[:mongodb][:init_style] = "upstart"
+    default['mongodb']['init_dir'] = "/etc/init"
+    default['mongodb']['init_script_template'] = "mongodb.upstart.erb"
+  else
+    default[:mongodb][:apt_repo] = "debian-sysvinit"
+  end
+else
+  default[:mongodb][:defaults_dir] = "/etc/default"
+  default[:mongodb][:root_group] = "root"
 end
 
 default[:mongodb][:package_version] = nil

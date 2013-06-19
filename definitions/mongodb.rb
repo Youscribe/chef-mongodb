@@ -131,8 +131,14 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
   end
   
   # init script
-  template "#{node['mongodb']['init_dir']}/#{name}" do
+  template "service template" do
     action :create
+    case node['mongodb']['init_style']
+    when "upstart"
+      path ::File.join( node['mongodb']['init_dir'], "#{name}.conf")
+    else
+      path ::File.join( node['mongodb']['init_dir'], name)
+    end
     cookbook node['mongodb']['template_cookbook']
     source node[:mongodb][:init_script_template]
     group node['mongodb']['root_group']
@@ -158,6 +164,10 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
     if name == "mongodb"
       # we don't care about a running mongodb service in these cases, all we need is stopping it
       ignore_failure true
+    end
+    case node['mongodb']['init_style']
+    when "upstart"
+      provider Chef::Provider::Service::Upstart
     end
   end
   
